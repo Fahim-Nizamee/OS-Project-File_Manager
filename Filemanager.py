@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QFileSystemModel,QTreeView, QLabel, QTreeWidget, QTreeWidgetItem, QFileDialog, QMessageBox, QLineEdit, QInputDialog,QHBoxLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,QDir
 from PyQt5.QtGui import QIcon  # Import QIcon
 import os
 import shutil
@@ -25,7 +25,8 @@ class FileExplorer(QMainWindow):
     def setup_ui(self):
         self.layout = QVBoxLayout()
         
-
+        
+        
         self.path_label = QLabel()
         self.path_label.setAlignment(Qt.AlignCenter)
         self.path_label.setStyleSheet("QLabel { font-size: 15px; }")
@@ -34,6 +35,12 @@ class FileExplorer(QMainWindow):
         self.tree_view = QTreeView()
         self.model = QFileSystemModel()
         self.create_buttons()
+        
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search...")
+        self.search_bar.textChanged.connect(self.filter_items)
+        self.layout.addWidget(self.search_bar)
+        
         # self.create_back_button()
         self.model.setRootPath(self.current_path)
         self.tree_view.setModel(self.model)
@@ -56,27 +63,27 @@ class FileExplorer(QMainWindow):
         self.home_button.clicked.connect(self.go_home)
         
         self.back_button = QPushButton("Back")
-        self.back_button.setIcon(self.style().standardIcon(QApplication.style().SP_ArrowBack))
+        self.back_button.setIcon(QIcon('back.png')) 
         self.back_button.clicked.connect(self.go_back)
 
         
         self.rename_button = QPushButton("Rename")
-        self.rename_button.setIcon(self.style().standardIcon(QApplication.style().SP_FileIcon))
+        self.rename_button.setIcon(QIcon('edit.png')) 
         self.rename_button.clicked.connect(self.rename_file)
 
 
         self.delete_button = QPushButton("Delete")
-        self.delete_button.setIcon(self.style().standardIcon(QApplication.style().SP_TrashIcon))
+        self.delete_button.setIcon(QIcon('delete.png')) 
         self.delete_button.clicked.connect(self.delete_file)
 
 
         self.copy_button = QPushButton("Copy")
-        self.copy_button.setIcon(self.style().standardIcon(QApplication.style().SP_TitleBarNormalButton))
+        self.copy_button.setIcon(QIcon('copy.png')) 
         self.copy_button.clicked.connect(self.copy_file)
 
 
         self.move_button = QPushButton("Move")
-        self.move_button.setIcon(self.style().standardIcon(QApplication.style().SP_DirLinkIcon))
+        self.move_button.setIcon(QIcon('cut.png')) 
         self.move_button.clicked.connect(self.move_file)
 
         
@@ -96,43 +103,93 @@ class FileExplorer(QMainWindow):
         
         self.buttons_layout.addWidget(self.back_button)
         self.buttons_layout.addWidget(self.home_button)
-        self.buttons_layout.addWidget(self.new_folder_button)        
+        self.buttons_layout.addWidget(self.new_folder_button)   
+        self.buttons_layout.addWidget(self.create_file_button)       
         self.buttons_layout.addWidget(self.rename_button)
         self.buttons_layout.addWidget(self.copy_button)
         self.buttons_layout.addWidget(self.move_button)
         self.buttons_layout.addWidget(self.delete_button)  
         self.buttons_layout.addWidget(self.refresh_button)
-        self.buttons_layout.addWidget(self.create_file_button)      
+            
 
         
         self.layout.addLayout(self.buttons_layout)
         
+    def filter_items(self, text):
+    # Filter items in the QTreeView based on the search text
+        root_index = self.model.index(self.current_path)
+        self.tree_view.setRootIndex(root_index)
+
+        if text:
+            # Create a filter to match the search text
+            filter_text = text.lower()  # Convert both text and file name to lowercase for case-insensitive comparison
+            self.model.setNameFilters(["*" + filter_text + "*"])
+            self.model.setFilter(QDir.AllEntries | QDir.NoDotAndDotDot | QDir.Hidden)
+
+            # Show only the matching items in the tree view
+            for row in range(self.model.rowCount(root_index)):
+                index = self.model.index(row, 0, root_index)
+                item_path = self.model.filePath(index)
+                if filter_text not in self.model.fileName(index).lower():
+                    self.tree_view.setRowHidden(row, index.parent(), True)
+                else:
+                    self.tree_view.setRowHidden(row, index.parent(), False)
+        else:
+            # If the search text is empty, clear the filters and show all items
+            self.model.setNameFilters([])
+            self.model.setFilter(QDir.AllEntries | QDir.NoDotAndDotDot | QDir.Hidden)
+
+            # Show all items in the tree view
+            for row in range(self.model.rowCount(root_index)):
+                self.tree_view.setRowHidden(row, root_index, False)
+
+
+        
     def create_new_folder(self):
-        folder_name, ok = QInputDialog.getText(self, "Create New Folder", "Enter folder name:")
-        if ok and folder_name:
-            new_folder_path = os.path.join(self.current_path, folder_name)
-            try:
-                os.mkdir(new_folder_path)
-            except OSError as e:
-                QMessageBox.critical(self, "Error", f"Failed to create folder: {e}")
-            else:
-                self.refresh_view()  # Refresh the view after creating a new folder
+        index = self.tree_view.currentIndex()
+        if index.isValid():
+            current_path = self.model.filePath(index)
+            new_name, ok = QInputDialog.getText(self, "Create Folder", "Enter folder name:", QLineEdit.Normal)
+            if ok and new_name.strip():
+                new_folder_path = os.path.join(current_path, new_name)
+                try:
+                    os.makedirs(new_folder_path)
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", str(e))
+                else:
+                    self.model.setRootPath(self.current_path)
+                    self.soft_refresh_view()
+                
     def create_file(self):
-        file_name, ok = QInputDialog.getText(self, "Create New File", "Enter file name:")
-        if ok and file_name:
-            file_path = os.path.join(self.current_path, file_name)
-            try:
-                with open(file_path, 'w') as new_file:
-                    pass  # Creating an empty file
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to create file: {e}")
-            else:
-                self.refresh_view()
+        index = self.tree_view.currentIndex()
+        if index.isValid():
+            current_path = self.model.filePath(index)
+            new_name, ok = QInputDialog.getText(self, "Create File", "Enter file name:", QLineEdit.Normal)
+            if ok and new_name.strip():
+                new_file_path = os.path.join(current_path, new_name)
+                try:
+                    with open(new_file_path, 'w'):
+                        pass  # Create an empty file
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", str(e))
+                else:
+                    self.model.setRootPath(self.current_path)
+                    self.soft_refresh_view()
+    
+    def soft_refresh_view(self):
+        self.model.setRootPath(self.current_path)
+        self.tree_view.setRootIndex(self.model.index(self.current_path))
+        # self.path_label.setText(self.current_path)
+        # self.tree_view.collapseAll()
+        self.search_bar.clear()
         
     def refresh_view(self):
         self.model.setRootPath(self.current_path)
         self.tree_view.setRootIndex(self.model.index(self.current_path))
         self.path_label.setText(self.current_path)
+        self.tree_view.collapseAll()
+        self.search_bar.clear()
+        
 
     def go_back(self):
         self.current_path = self.model.filePath(self.model.parent(self.model.index(self.current_path)))
