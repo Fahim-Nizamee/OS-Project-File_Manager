@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QFileSystemModel,QTreeView, QLabel, QTreeWidget, QTreeWidgetItem, QFileDialog, QMessageBox, QLineEdit, QInputDialog,QHBoxLayout
 from PyQt5.QtCore import Qt,QDir
-from PyQt5.QtGui import QIcon  # Import QIcon
+from PyQt5.QtGui import QIcon 
 import os
 import shutil
 import subprocess
@@ -10,12 +10,12 @@ class FileExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Operating System File Manager")
-        self.setGeometry(50, 50, 1100, 700)
-        self.setWindowIcon(self.style().standardIcon(QApplication.style().SP_DirHomeIcon))
+        self.setGeometry(50, 50, 1200, 750)
+        self.setWindowIcon(QIcon('file-management.png'))
 
-        self.current_path = os.path.expanduser("://") # Starting from the root directory
+        self.current_path = os.path.expanduser("://") 
 
-        self.central_widget = QTreeWidget()  # Change here to QTreeWidget
+        self.central_widget = QTreeWidget()  
         self.setCentralWidget(self.central_widget)
         self.central_widget.setHeaderLabels([""])
         self.central_widget.setColumnWidth(0, 300)
