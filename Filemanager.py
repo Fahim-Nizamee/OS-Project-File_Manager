@@ -40,8 +40,6 @@ class FileExplorer(QMainWindow):
         self.search_bar.setPlaceholderText("Search...")
         self.search_bar.textChanged.connect(self.filter_items)
         self.layout.addWidget(self.search_bar)
-        
-        # self.create_back_button()
         self.model.setRootPath(self.current_path)
         self.tree_view.setModel(self.model)
         self.tree_view.setRootIndex(self.model.index(self.current_path))
@@ -49,10 +47,8 @@ class FileExplorer(QMainWindow):
         self.tree_view.doubleClicked.connect(self.on_double_click)
         self.layout.addWidget(self.tree_view)
 
-        # self.create_buttons()
         self.central_widget.setLayout(self.layout)
-        # self.create_buttons()
-        # self.central_widget.setLayout(self.layout)
+
 
     
     def create_buttons(self):
@@ -116,17 +112,14 @@ class FileExplorer(QMainWindow):
         self.layout.addLayout(self.buttons_layout)
         
     def filter_items(self, text):
-    # Filter items in the QTreeView based on the search text
         root_index = self.model.index(self.current_path)
         self.tree_view.setRootIndex(root_index)
 
         if text:
-            # Create a filter to match the search text
-            filter_text = text.lower()  # Convert both text and file name to lowercase for case-insensitive comparison
+            filter_text = text.lower()  
             self.model.setNameFilters(["*" + filter_text + "*"])
             self.model.setFilter(QDir.AllEntries | QDir.NoDotAndDotDot | QDir.Hidden)
 
-            # Show only the matching items in the tree view
             for row in range(self.model.rowCount(root_index)):
                 index = self.model.index(row, 0, root_index)
                 item_path = self.model.filePath(index)
@@ -135,11 +128,9 @@ class FileExplorer(QMainWindow):
                 else:
                     self.tree_view.setRowHidden(row, index.parent(), False)
         else:
-            # If the search text is empty, clear the filters and show all items
             self.model.setNameFilters([])
             self.model.setFilter(QDir.AllEntries | QDir.NoDotAndDotDot | QDir.Hidden)
 
-            # Show all items in the tree view
             for row in range(self.model.rowCount(root_index)):
                 self.tree_view.setRowHidden(row, root_index, False)
 
@@ -149,38 +140,46 @@ class FileExplorer(QMainWindow):
         index = self.tree_view.currentIndex()
         if index.isValid():
             current_path = self.model.filePath(index)
-            new_name, ok = QInputDialog.getText(self, "Create Folder", "Enter folder name:", QLineEdit.Normal)
-            if ok and new_name.strip():
-                new_folder_path = os.path.join(current_path, new_name)
-                try:
-                    os.makedirs(new_folder_path)
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", str(e))
-                else:
-                    self.model.setRootPath(self.current_path)
-                    self.soft_refresh_view()
+            
+            # Check if the current path is a directory
+            if os.path.isdir(current_path):
+                new_name, ok = QInputDialog.getText(self, "Create Folder", "Enter folder name:", QLineEdit.Normal)
+                if ok and new_name.strip():
+                    new_folder_path = os.path.join(current_path, new_name)
+                    try:
+                        os.makedirs(new_folder_path)
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", str(e))
+                    else:
+                        self.model.setRootPath(self.current_path)
+                        self.soft_refresh_view()
+            else:
+                QMessageBox.warning(self, "Warning", "Selected path is not a directory.")
                 
     def create_file(self):
         index = self.tree_view.currentIndex()
         if index.isValid():
             current_path = self.model.filePath(index)
-            new_name, ok = QInputDialog.getText(self, "Create File", "Enter file name:", QLineEdit.Normal)
-            if ok and new_name.strip():
-                new_file_path = os.path.join(current_path, new_name)
-                try:
-                    with open(new_file_path, 'w'):
-                        pass  # Create an empty file
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", str(e))
-                else:
-                    self.model.setRootPath(self.current_path)
-                    self.soft_refresh_view()
+            
+            # Check if the current path is a directory
+            if os.path.isdir(current_path):
+                new_name, ok = QInputDialog.getText(self, "Create File", "Enter file name:", QLineEdit.Normal)
+                if ok and new_name.strip():
+                    new_file_path = os.path.join(current_path, new_name)
+                    try:
+                        with open(new_file_path, 'w'):
+                            pass
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", str(e))
+                    else:
+                        self.model.setRootPath(self.current_path)
+                        self.soft_refresh_view()
+            else:
+                QMessageBox.warning(self, "Warning", "Selected path is not a directory.")
     
     def soft_refresh_view(self):
         self.model.setRootPath(self.current_path)
         self.tree_view.setRootIndex(self.model.index(self.current_path))
-        # self.path_label.setText(self.current_path)
-        # self.tree_view.collapseAll()
         self.search_bar.clear()
         
     def refresh_view(self):
@@ -242,12 +241,8 @@ class FileExplorer(QMainWindow):
 
     def open_file_with_default_app(self, file_path):
         try:
-            if sys.platform.startswith('darwin'):  # For macOS
-                subprocess.run(['open', file_path])
-            elif os.name == 'nt':  # For Windows
+            if os.name == 'nt': 
                 os.startfile(file_path)
-            else:  # For Linux
-                subprocess.run(['xdg-open', file_path])
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
@@ -272,7 +267,6 @@ class FileExplorer(QMainWindow):
         if index.isValid():
             path = self.model.filePath(index)
 
-            # Ask for confirmation before deleting
             confirm_msg = f"Are you sure you want to delete {os.path.basename(path)}?"
             confirm_reply = QMessageBox.question(self, "Confirm Deletion", confirm_msg, QMessageBox.Yes | QMessageBox.No)
 
