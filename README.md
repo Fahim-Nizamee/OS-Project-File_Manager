@@ -20,7 +20,7 @@
                 <p>Make sure you have Python installed on your system before running this command.</p>
                 <h2>Dependencies</h2>
                 <p>The project relies on the following Python libraries, specified in the 
-                    <code>requirements.txt</code>
+                    <code class="!whitespace-pre hljs language-bash">requirements.txt</code>
                     file:</p>
                 <ul>
                     <li>altgraph==0.17.4</li>
@@ -40,7 +40,7 @@
                 <pre>
                     <div >
                         <div >
-                            <code >python main.py</code>
+                            <code class="!whitespace-pre hljs language-bash" >python Filemanager.py</code>
                 </div>
             </div>
         </pre>
